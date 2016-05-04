@@ -17,6 +17,8 @@
 
 scopes: <%= authorize.getScope() %><p>
 
+uri: <%= authorize.getRedirecturi() %><p>
+
   <input type="submit" value="OK">
   <input type="button" value="CANCEL" onClick="javascript:location.href='error';">
 
