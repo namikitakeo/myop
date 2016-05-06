@@ -17,29 +17,29 @@
  * under the License. 
  */ 
 
-/*************************************************************************** 
+/***************************************************************************
  *
- * DISCLAIMER OF WARRANTIES: 
- * 
- * THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED ON AN "AS IS" BASIS, WITHOUT 
- * ANY WARRANTIES OR REPRESENTATIONS EXPRESS, IMPLIED OR STATUTORY; INCLUDING, 
- * WITHOUT LIMITATION, WARRANTIES OF QUALITY, PERFORMANCE, NONINFRINGEMENT, 
- * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  NOR ARE THERE ANY 
- * WARRANTIES CREATED BY A COURSE OR DEALING, COURSE OF PERFORMANCE OR TRADE 
- * USAGE.  FURTHERMORE, THERE ARE NO WARRANTIES THAT THE SOFTWARE WILL MEET 
- * YOUR NEEDS OR BE FREE FROM ERRORS, OR THAT THE OPERATION OF THE SOFTWARE 
- * WILL BE UNINTERRUPTED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES HOWEVER CAUSED AND ON ANY THEORY OF 
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
- * 
- * @Author: Takeo Namiki - takeo.namiki@gmail.com 
- * 
+ * DISCLAIMER OF WARRANTIES:
+ *
+ * THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED ON AN "AS IS" BASIS, WITHOUT
+ * ANY WARRANTIES OR REPRESENTATIONS EXPRESS, IMPLIED OR STATUTORY; INCLUDING,
+ * WITHOUT LIMITATION, WARRANTIES OF QUALITY, PERFORMANCE, NONINFRINGEMENT,
+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  NOR ARE THERE ANY
+ * WARRANTIES CREATED BY A COURSE OR DEALING, COURSE OF PERFORMANCE OR TRADE
+ * USAGE.  FURTHERMORE, THERE ARE NO WARRANTIES THAT THE SOFTWARE WILL MEET
+ * YOUR NEEDS OR BE FREE FROM ERRORS, OR THAT THE OPERATION OF THE SOFTWARE
+ * WILL BE UNINTERRUPTED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * @Author: Takeo Namiki - takeo.namiki@gmail.com
+ *
  * >javac -cp servlet-api.jar bean\authorize.java bean\login.java bean\consent.java bean\error.java
  *
- **************************************************************************/ 
+ **************************************************************************/
 
 package bean;
 
@@ -66,14 +66,17 @@ public class login extends HttpServlet {
         String scope = req.getParameter("scope");
         String state = req.getParameter("state");
         String nonce = req.getParameter("nonce");
-        HttpSession session = req.getSession(true);
-        authorize bean = new authorize(response_type, username, password, prompt, client_id, redirect_uri, scope, state, nonce);
-        session.setAttribute("authorize", bean);
+        String consent = req.getParameter("consent");
         RequestDispatcher rd = null;
-        if (username == null && password == null) rd = ctx.getRequestDispatcher("/login.jsp");
-        else if (prompt != null && prompt.equals("consent")) rd = ctx.getRequestDispatcher("/consent.jsp");
-        else rd = ctx.getRequestDispatcher("/authorize");
+        if (consent != null && consent.equals("true")) {
+            rd = ctx.getRequestDispatcher("/consent.jsp");
+        } else {
+            HttpSession session = req.getSession(true);
+            authorize bean = new authorize(response_type, username, password, prompt, client_id, redirect_uri, scope, state, nonce, consent);
+            session.setAttribute("authorize", bean);
+            if (username == null && password == null) rd = ctx.getRequestDispatcher("/login.jsp");
+            else rd = ctx.getRequestDispatcher("/authorize");
+        }
         rd.forward(req, res);
     }
 }
-

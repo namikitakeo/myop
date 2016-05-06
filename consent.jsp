@@ -14,13 +14,18 @@
   <input type="hidden" name="scope" value="<%= authorize.getScope() %>">
   <input type="hidden" name="state" value="<%= authorize.getState() %>">
   <input type="hidden" name="nonce" value="<%= authorize.getNonce() %>">
+  <input type="hidden" name="consent" value="false">
 
 scopes: <%= authorize.getScope() %><p>
 
 uri: <%= authorize.getRedirecturi() %><p>
 
   <input type="submit" value="OK">
-  <input type="button" value="CANCEL" onClick="javascript:location.href='error';">
+<% if (authorize.getState().equals("null")) { %>
+  <input type="button" value="CANCEL" onClick="javascript:location.href='<%= authorize.getRedirecturi() %>#error=access_denied&error_description=User%20canceled%20the%20access.';">
+<% } else { %>
+  <input type="button" value="CANCEL" onClick="javascript:location.href='<%= authorize.getRedirecturi() %>#error=access_denied&error_description=User%20canceled%20the%20access.&state=<%= authorize.getState() %>';">
+<% } %>
 
  </form>
 </body>

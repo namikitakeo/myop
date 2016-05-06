@@ -17,29 +17,29 @@
  * under the License. 
  */ 
 
-/*************************************************************************** 
+/***************************************************************************
  *
- * DISCLAIMER OF WARRANTIES: 
- * 
- * THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED ON AN "AS IS" BASIS, WITHOUT 
- * ANY WARRANTIES OR REPRESENTATIONS EXPRESS, IMPLIED OR STATUTORY; INCLUDING, 
- * WITHOUT LIMITATION, WARRANTIES OF QUALITY, PERFORMANCE, NONINFRINGEMENT, 
- * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  NOR ARE THERE ANY 
- * WARRANTIES CREATED BY A COURSE OR DEALING, COURSE OF PERFORMANCE OR TRADE 
- * USAGE.  FURTHERMORE, THERE ARE NO WARRANTIES THAT THE SOFTWARE WILL MEET 
- * YOUR NEEDS OR BE FREE FROM ERRORS, OR THAT THE OPERATION OF THE SOFTWARE 
- * WILL BE UNINTERRUPTED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES HOWEVER CAUSED AND ON ANY THEORY OF 
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
- * 
- * @Author: Takeo Namiki - takeo.namiki@gmail.com 
- * 
+ * DISCLAIMER OF WARRANTIES:
+ *
+ * THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED ON AN "AS IS" BASIS, WITHOUT
+ * ANY WARRANTIES OR REPRESENTATIONS EXPRESS, IMPLIED OR STATUTORY; INCLUDING,
+ * WITHOUT LIMITATION, WARRANTIES OF QUALITY, PERFORMANCE, NONINFRINGEMENT,
+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  NOR ARE THERE ANY
+ * WARRANTIES CREATED BY A COURSE OR DEALING, COURSE OF PERFORMANCE OR TRADE
+ * USAGE.  FURTHERMORE, THERE ARE NO WARRANTIES THAT THE SOFTWARE WILL MEET
+ * YOUR NEEDS OR BE FREE FROM ERRORS, OR THAT THE OPERATION OF THE SOFTWARE
+ * WILL BE UNINTERRUPTED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * @Author: Takeo Namiki - takeo.namiki@gmail.com
+ *
  * >javac -cp servlet-api.jar bean\authorize.java bean\login.java bean\consent.java bean\error.java
  *
- **************************************************************************/ 
+ **************************************************************************/
 
 package bean;
 
@@ -55,6 +55,7 @@ public class authorize implements Serializable {
     private String scope = "";
     private String state = "";
     private String nonce = "";
+    private String consent = "";
     public authorize() {
         this.response_type = "";
         this.username = "";
@@ -65,8 +66,9 @@ public class authorize implements Serializable {
         this.scope = "";
         this.state = "";
         this.nonce = "";
+        this.consent = "";
     }
-    public authorize(String response_type, String username, String password, String prompt, String client_id, String redirect_uri, String scope, String state, String nonce) {
+    public authorize(String response_type, String username, String password, String prompt, String client_id, String redirect_uri, String scope, String state, String nonce, String consent) {
         this.response_type = response_type;
         this.username = username;
         this.password = password;
@@ -76,6 +78,7 @@ public class authorize implements Serializable {
         this.scope = scope;
         this.state = state;
         this.nonce = nonce;
+        this.consent = consent;
     }
     public String getResponsetype() { return response_type; }
     public String getUsername() { return username; }
@@ -86,6 +89,7 @@ public class authorize implements Serializable {
     public String getScope() { return scope; }
     public String getState() { return state; }
     public String getNonce() { return nonce; }
+    public String getConsent() { return consent; }
     public void setResponsetype(String rt) { response_type = rt; }
     public void setUsername(String id) { username = id; }
     public void setPassword(String pw) { password = pw; }
@@ -95,5 +99,5 @@ public class authorize implements Serializable {
     public void setScope(String sc) { scope = sc; }
     public void setState(String st) { state = st; }
     public void setNonce(String no) { nonce = no; }
+    public void setConsent(String co) { consent = co; }
 }
-

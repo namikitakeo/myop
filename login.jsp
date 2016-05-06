@@ -14,6 +14,7 @@
   <input type="hidden" name="scope" value="<%= authorize.getScope() %>">
   <input type="hidden" name="state" value="<%= authorize.getState() %>">
   <input type="hidden" name="nonce" value="<%= authorize.getNonce() %>">
+  <input type="hidden" name="consent" value="<%= authorize.getConsent() %>">
   <input type="submit" value="Login">
  </form>
 </body>

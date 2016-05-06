@@ -17,29 +17,29 @@
  * under the License. 
  */ 
 
-/*************************************************************************** 
+/***************************************************************************
  *
- * DISCLAIMER OF WARRANTIES: 
- * 
- * THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED ON AN "AS IS" BASIS, WITHOUT 
- * ANY WARRANTIES OR REPRESENTATIONS EXPRESS, IMPLIED OR STATUTORY; INCLUDING, 
- * WITHOUT LIMITATION, WARRANTIES OF QUALITY, PERFORMANCE, NONINFRINGEMENT, 
- * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  NOR ARE THERE ANY 
- * WARRANTIES CREATED BY A COURSE OR DEALING, COURSE OF PERFORMANCE OR TRADE 
- * USAGE.  FURTHERMORE, THERE ARE NO WARRANTIES THAT THE SOFTWARE WILL MEET 
- * YOUR NEEDS OR BE FREE FROM ERRORS, OR THAT THE OPERATION OF THE SOFTWARE 
- * WILL BE UNINTERRUPTED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES HOWEVER CAUSED AND ON ANY THEORY OF 
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
- * 
- * @Author: Takeo Namiki - takeo.namiki@gmail.com 
- * 
- * >javac -cp servlet-api.jar;commons-lang3-3.4.jar;jjwt-0.6.0.jar;log4j-api-2.5.jar;javax.json-1.0.4.jar authorize.java
+ * DISCLAIMER OF WARRANTIES:
  *
- **************************************************************************/ 
+ * THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED ON AN "AS IS" BASIS, WITHOUT
+ * ANY WARRANTIES OR REPRESENTATIONS EXPRESS, IMPLIED OR STATUTORY; INCLUDING,
+ * WITHOUT LIMITATION, WARRANTIES OF QUALITY, PERFORMANCE, NONINFRINGEMENT,
+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  NOR ARE THERE ANY
+ * WARRANTIES CREATED BY A COURSE OR DEALING, COURSE OF PERFORMANCE OR TRADE
+ * USAGE.  FURTHERMORE, THERE ARE NO WARRANTIES THAT THE SOFTWARE WILL MEET
+ * YOUR NEEDS OR BE FREE FROM ERRORS, OR THAT THE OPERATION OF THE SOFTWARE
+ * WILL BE UNINTERRUPTED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * @Author: Takeo Namiki - takeo.namiki@gmail.com
+ *
+ * >javac -cp servlet-api.jar;commons-lang3-3.4.jar;jjwt-0.6.0.jar;log4j-api-2.5.jar authorize.java
+ *
+ **************************************************************************/
 
 import java.io.*;
 import java.sql.*;
@@ -73,6 +73,7 @@ public class authorize extends HttpServlet {
         String scope = request.getParameter("scope");
         String state = request.getParameter("state");
         String nonce = request.getParameter("nonce");
+        String consent = request.getParameter("consent");
         String client_scope=null;
         String access_token=null;
         String id_token=null;
@@ -82,31 +83,32 @@ public class authorize extends HttpServlet {
         String sql = null;
         String uri = null;
         String issuer = null;
-        String keyname = null;
         boolean redirect_uri_check = true;
         int access_token_time = 60;
+        String kit="public.key";
         if (scope == null) scope="openid";
         try {
             ServletContext context = this.getServletContext();
             path = context.getRealPath("/WEB-INF/oauth2");
             Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
             conn = DriverManager.getConnection("jdbc:derby:"+path);
-            logger.trace("getConnection()");
             stmt = conn.createStatement();
+            logger.trace("connect()");
             sql = "SELECT scope, redirect_uri FROM client WHERE client_id='"+client_id+"'";
             rs = stmt.executeQuery(sql);
-            logger.trace(sql);
             while(rs.next()){
                 client_scope = rs.getString("scope");
                 db_redirect_uri = rs.getString("redirect_uri");
             }
+            logger.trace(sql);
             if (redirect_uri == null) redirect_uri=db_redirect_uri;
             sql = "SELECT passwd FROM profile WHERE uid='"+username+"'";
             rs = stmt.executeQuery(sql);
-            logger.trace(sql);
             while(rs.next()){
                 passwd = rs.getString("passwd");
             }
+            logger.trace(sql);
+            String keyname = null;
             path = context.getRealPath("/WEB-INF/config.json");
             InputStream input = new FileInputStream(path);
             JsonParser parser = Json.createParser(input);
@@ -115,23 +117,19 @@ public class authorize extends HttpServlet {
                 switch(event){
                 case KEY_NAME:
                     keyname=parser.getString();
-                    logger.trace(keyname);
                     break;
                 case VALUE_NUMBER:
                     access_token_time=parser.getInt();
-                    logger.trace(parser.getInt());
                     break;
                 case VALUE_TRUE:
                     redirect_uri_check=true;
-                    logger.trace("true");
                     break;
                 case VALUE_FALSE:
                     redirect_uri_check=false;
-                    logger.trace("false");
                     break;
                 case VALUE_STRING:
                     if (keyname.equals("issuer")) issuer=parser.getString();
-                    logger.trace(parser.getString());
+                    if (keyname.equals("kit")) kit=parser.getString();
                     break;
                 default:
                     break;
@@ -140,14 +138,21 @@ public class authorize extends HttpServlet {
             java.util.Date dt = new java.util.Date();
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             String currentTime = sdf.format(dt);
-            access_token = RandomStringUtils.randomAlphanumeric(32);
-            byte[] cipher_byte;
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            md.update(password.getBytes());
-            cipher_byte = md.digest();
-            String sha256_password = Base64.getEncoder().withoutPadding().encodeToString(cipher_byte);
-            if (client_scope != null) {
-                if (passwd != null && passwd.contains(sha256_password) && client_scope.contains(scope) && (!redirect_uri_check || db_redirect_uri.equals(redirect_uri))) {
+            if (client_scope != null && passwd != null) {
+                byte[] cipher_byte;
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                md.update(password.getBytes());
+                cipher_byte = md.digest();
+                String sha256_password = Base64.getEncoder().withoutPadding().encodeToString(cipher_byte);
+                if (passwd.contains(sha256_password) && client_scope.contains(scope) && (!redirect_uri_check || db_redirect_uri.equals(redirect_uri))) {
+                    if (prompt != null && prompt.equals("consent") && !consent.equals("false")) {
+                        username="null";
+                        password="null";
+                        consent="true";
+                        throw new Exception("consent is true");
+                    }
+                    access_token = RandomStringUtils.randomAlphanumeric(32);
+                    logger.trace(access_token);
                     sql = "insert into session(uid,access_token,issued_in,scope,client_id) values ('"+username+"','"+access_token+"','"+currentTime+"','"+scope+"','"+client_id+"')";
                     stmt.executeUpdate(sql);
                     md.update(access_token.getBytes());
@@ -167,17 +172,20 @@ public class authorize extends HttpServlet {
                     exp.add(Calendar.SECOND, access_token_time);
                     if (nonce == null || nonce.equals("null")) {
                         if (response_type.contains("id_token")) {
-                            response.sendRedirect("/myop/error");
-                            logger.trace("/myop/error");
+                            uri = redirect_uri;
+                            uri += "#error=invalid_request&error_description=nonce%20is%20not%20valid.";
+                            response.sendRedirect(uri);
+                            logger.trace(uri);
                             return;
                         }
                     } else {
-                        id_token = Jwts.builder().setIssuer(issuer).setAudience("OpenIG").claim("nonce",nonce).claim("at_hash",at_hash).setSubject(username).setExpiration(exp.getTime()).setIssuedAt(Calendar.getInstance().getTime()).signWith(SignatureAlgorithm.RS256,privateKey).compact();
+                        id_token = Jwts.builder().setHeaderParam("alg", "RS256").setHeaderParam("typ", "JWT").setHeaderParam("kid", kit).setIssuer(issuer).claim("at_hash",at_hash).setSubject(username).setAudience(client_id).claim("nonce",nonce).setSubject(username).setExpiration(exp.getTime()).setIssuedAt(Calendar.getInstance().getTime()).claim("auth_time",String.valueOf(Calendar.getInstance().getTime().getTime()).substring(0,10)).signWith(SignatureAlgorithm.RS256,privateKey).compact();
+                        logger.trace(id_token);
                     }
                     uri = redirect_uri;
-                    if (response_type.equals("token")) uri += "#access_token="+access_token+"&token_type=Bearer&expires_in="+access_token_time;
+                    if (response_type.equals("token")) uri += "#access_token="+access_token+"&token_type=bearer&expires_in="+access_token_time;
                     if (response_type.equals("id_token")) uri += "#id_token="+id_token;
-                    if (response_type.equals("token id_token") || response_type.equals("id_token token")) uri += "#access_token="+access_token+"&token_type=Bearer&expires_in="+access_token_time+"&id_token="+id_token;
+                    if (response_type.equals("token id_token") || response_type.equals("id_token token")) uri += "#access_token="+access_token+"&token_type=bearer&expires_in="+access_token_time+"&id_token="+id_token;
                     if (state != null && !state.equals("null")) uri += "&state="+state;
                     response.sendRedirect(uri);
                     logger.trace(uri);
@@ -185,30 +193,40 @@ public class authorize extends HttpServlet {
                 }
             }
         }catch (Exception e){
-            logger.trace("Exception e");
+            logger.trace(e.getMessage());
         }finally{
             try{
                 if (conn != null) {
                     rs.close();
                     stmt.close();
                     conn.close();
+                    logger.trace("close()");
                 }
-                logger.trace("conn.close()");
             }catch (SQLException e){
-                logger.trace("SQLException e");
+                logger.trace(e.getMessage());
             }
         }
-        if (client_scope != null && redirect_uri != null && response_type != null && (response_type.equals("token") || response_type.equals("id_token") || response_type.equals("token id_token") || response_type.equals("id_token token"))) {
-            uri = "/myop/login?response_type="+URLEncoder.encode(response_type,"UTF-8")+"&scope="+URLEncoder.encode(scope,"UTF-8")+"&client_id="+client_id+"&redirect_uri="+URLEncoder.encode(redirect_uri,"UTF-8");
-            if (prompt != null && !prompt.equals("null")) uri += "&prompt="+prompt;
-            if (state != null && !state.equals("null")) uri += "&state="+state;
-            if (nonce != null && !nonce.equals("null")) uri += "&nonce="+nonce;
-            response.sendRedirect(uri);
-            logger.trace(uri);
+        if (redirect_uri != null || redirect_uri.equals("null")) uri = redirect_uri;
+        else uri = "/myop/error";
+        if (username != null && !username.equals("null") && password != null && !password.equals("null")) {
+            uri += "#error=access_denied&error_description=User%20authentication%20failed.";
+        } else if (scope == null || !(scope.equals("openid") || scope.equals("openid email"))) {
+            uri += "#error=invalid_scope&error_description=The%20scope%20value%20%22"+scope+"%22%20is%20not%20supported.";
+        } else if (client_scope == null || client_scope.equals("null")) {
+            uri += "#error=invalid_request&error_description=client_id%20is%20not%20valid.";
+        } else if (response_type == null || response_type.equals("null") || !(response_type.equals("token") || response_type.equals("id_token") || response_type.equals("token id_token") || response_type.equals("id_token token"))) {
+            uri += "#error=unsupported_response_type&error_description==The%20response_type%20value%20%22"+response_type+"%22%20is%20not%20supported.";
+        } else if (redirect_uri_check && !db_redirect_uri.equals(redirect_uri)) {
+            uri += "#error=invalid_request&error_description=redirect_uri%20is%20not%20valid.";
         } else {
-            response.sendRedirect("/myop/error");
-            logger.trace("/myop/error");
+            uri = "/myop/login?response_type="+URLEncoder.encode(response_type,"UTF-8")+"&client_id="+client_id+"&redirect_uri="+URLEncoder.encode(redirect_uri,"UTF-8")+"&scope="+URLEncoder.encode(scope,"UTF-8");
+            if (nonce != null && !nonce.equals("null")) uri += "&nonce="+nonce;
+            if (prompt != null && !prompt.equals("null")) uri += "&prompt="+prompt;
+            if (consent != null && consent.equals("true")) uri += "&consent="+consent;
         }
+        if (state != null && !state.equals("null")) uri += "&state="+state;
+        response.sendRedirect(uri);
+        logger.trace(uri);
         logger.trace("END");
     }
 }
