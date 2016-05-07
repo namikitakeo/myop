@@ -47,7 +47,7 @@ import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
-public class error extends HttpServlet {
+public class logout extends HttpServlet {
     ServletContext ctx = null;
     public void init(ServletConfig config) {
         synchronized(this) {
@@ -56,9 +56,16 @@ public class error extends HttpServlet {
             }
         }
     }
-    public void service (HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        RequestDispatcher rd = ctx.getRequestDispatcher("/error.jsp");
-        rd.forward(req, res);
+    public void service (HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+            session = request.getSession(false);
+        }
+        RequestDispatcher rd = null;
+        if (session == null) rd = ctx.getRequestDispatcher("/logout.jsp");
+        else rd = ctx.getRequestDispatcher("/error.jsp");
+        rd.forward(request, response);
     }
 }
 

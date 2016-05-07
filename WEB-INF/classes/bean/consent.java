@@ -37,7 +37,7 @@
  * 
  * @Author: Takeo Namiki - takeo.namiki@gmail.com 
  * 
- * >javac -cp servlet-api.jar bean\authorize.java bean\login.java bean\consent.java bean\error.java
+ * >javac -cp servlet-api.jar bean\authorize.java bean\login.java bean\logout.java bean\consent.java bean\error.java
  *
  **************************************************************************/ 
 

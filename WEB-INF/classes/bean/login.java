@@ -17,29 +17,29 @@
  * under the License. 
  */ 
 
-/***************************************************************************
+/*************************************************************************** 
  *
- * DISCLAIMER OF WARRANTIES:
+ * DISCLAIMER OF WARRANTIES: 
+ * 
+ * THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED ON AN "AS IS" BASIS, WITHOUT 
+ * ANY WARRANTIES OR REPRESENTATIONS EXPRESS, IMPLIED OR STATUTORY; INCLUDING, 
+ * WITHOUT LIMITATION, WARRANTIES OF QUALITY, PERFORMANCE, NONINFRINGEMENT, 
+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  NOR ARE THERE ANY 
+ * WARRANTIES CREATED BY A COURSE OR DEALING, COURSE OF PERFORMANCE OR TRADE 
+ * USAGE.  FURTHERMORE, THERE ARE NO WARRANTIES THAT THE SOFTWARE WILL MEET 
+ * YOUR NEEDS OR BE FREE FROM ERRORS, OR THAT THE OPERATION OF THE SOFTWARE 
+ * WILL BE UNINTERRUPTED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES HOWEVER CAUSED AND ON ANY THEORY OF 
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * 
+ * @Author: Takeo Namiki - takeo.namiki@gmail.com 
+ * 
+ * >javac -cp servlet-api.jar bean\authorize.java bean\login.java bean\logout.java bean\consent.java bean\error.java
  *
- * THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED ON AN "AS IS" BASIS, WITHOUT
- * ANY WARRANTIES OR REPRESENTATIONS EXPRESS, IMPLIED OR STATUTORY; INCLUDING,
- * WITHOUT LIMITATION, WARRANTIES OF QUALITY, PERFORMANCE, NONINFRINGEMENT,
- * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  NOR ARE THERE ANY
- * WARRANTIES CREATED BY A COURSE OR DEALING, COURSE OF PERFORMANCE OR TRADE
- * USAGE.  FURTHERMORE, THERE ARE NO WARRANTIES THAT THE SOFTWARE WILL MEET
- * YOUR NEEDS OR BE FREE FROM ERRORS, OR THAT THE OPERATION OF THE SOFTWARE
- * WILL BE UNINTERRUPTED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * @Author: Takeo Namiki - takeo.namiki@gmail.com
- *
- * >javac -cp servlet-api.jar bean\authorize.java bean\login.java bean\consent.java bean\error.java
- *
- **************************************************************************/
+ **************************************************************************/ 
 
 package bean;
 
@@ -56,27 +56,42 @@ public class login extends HttpServlet {
             }
         }
     }
-    public void service (HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        String response_type = req.getParameter("response_type");
-        String username = req.getParameter("username");
-        String password = req.getParameter("password");
-        String prompt = req.getParameter("prompt");
-        String client_id = req.getParameter("client_id");
-        String redirect_uri = req.getParameter("redirect_uri");
-        String scope = req.getParameter("scope");
-        String state = req.getParameter("state");
-        String nonce = req.getParameter("nonce");
-        String consent = req.getParameter("consent");
+    public void service (HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String response_type = request.getParameter("response_type");
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
+        String prompt = request.getParameter("prompt");
+        String login_hint = request.getParameter("login_hint");
+        String max_age = request.getParameter("max_age");
+        String client_id = request.getParameter("client_id");
+        String redirect_uri = request.getParameter("redirect_uri");
+        String scope = request.getParameter("scope");
+        String state = request.getParameter("state");
+        String nonce = request.getParameter("nonce");
+        String consent = request.getParameter("consent");
         RequestDispatcher rd = null;
         if (consent != null && consent.equals("true")) {
             rd = ctx.getRequestDispatcher("/consent.jsp");
         } else {
-            HttpSession session = req.getSession(true);
-            authorize bean = new authorize(response_type, username, password, prompt, client_id, redirect_uri, scope, state, nonce, consent);
-            session.setAttribute("authorize", bean);
+            HttpSession session = request.getSession(false);
+            if (session == null) {
+                session = request.getSession(true);
+                authorize bean = new authorize(response_type, username, password, prompt, login_hint, max_age, client_id, redirect_uri, scope, state, nonce, consent);
+                session.setAttribute("authorize", bean);
+            } else {
+                authorize cookie = (authorize)session.getAttribute("authorize");
+                if (username == null && password == null && cookie != null) {
+                    username = cookie.getUsername();
+                    password = cookie.getPassword();
+                }
+                authorize bean = new authorize(response_type, username, password, prompt, login_hint, max_age, client_id, redirect_uri, scope, state, nonce, consent);
+                session.setAttribute("authorize", bean);
+            }
             if (username == null && password == null) rd = ctx.getRequestDispatcher("/login.jsp");
-            else rd = ctx.getRequestDispatcher("/authorize");
+            else if (request.getMethod().equals("POST")) rd = ctx.getRequestDispatcher("/authorize");
+            else rd = ctx.getRequestDispatcher("/none.jsp");
         }
-        rd.forward(req, res);
+        rd.forward(request, response);
     }
 }
+

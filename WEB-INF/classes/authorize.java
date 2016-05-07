@@ -17,29 +17,29 @@
  * under the License. 
  */ 
 
-/***************************************************************************
+/*************************************************************************** 
  *
- * DISCLAIMER OF WARRANTIES:
+ * DISCLAIMER OF WARRANTIES: 
+ * 
+ * THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED ON AN "AS IS" BASIS, WITHOUT 
+ * ANY WARRANTIES OR REPRESENTATIONS EXPRESS, IMPLIED OR STATUTORY; INCLUDING, 
+ * WITHOUT LIMITATION, WARRANTIES OF QUALITY, PERFORMANCE, NONINFRINGEMENT, 
+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  NOR ARE THERE ANY 
+ * WARRANTIES CREATED BY A COURSE OR DEALING, COURSE OF PERFORMANCE OR TRADE 
+ * USAGE.  FURTHERMORE, THERE ARE NO WARRANTIES THAT THE SOFTWARE WILL MEET 
+ * YOUR NEEDS OR BE FREE FROM ERRORS, OR THAT THE OPERATION OF THE SOFTWARE 
+ * WILL BE UNINTERRUPTED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES HOWEVER CAUSED AND ON ANY THEORY OF 
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * 
+ * @Author: Takeo Namiki - takeo.namiki@gmail.com 
+ * 
+ * >javac -cp servlet-api.jar;commons-lang3-3.4.jar;jjwt-0.6.0.jar;javax.json-1.0.4.jar;log4j-api-2.5.jar authorize.java
  *
- * THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED ON AN "AS IS" BASIS, WITHOUT
- * ANY WARRANTIES OR REPRESENTATIONS EXPRESS, IMPLIED OR STATUTORY; INCLUDING,
- * WITHOUT LIMITATION, WARRANTIES OF QUALITY, PERFORMANCE, NONINFRINGEMENT,
- * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  NOR ARE THERE ANY
- * WARRANTIES CREATED BY A COURSE OR DEALING, COURSE OF PERFORMANCE OR TRADE
- * USAGE.  FURTHERMORE, THERE ARE NO WARRANTIES THAT THE SOFTWARE WILL MEET
- * YOUR NEEDS OR BE FREE FROM ERRORS, OR THAT THE OPERATION OF THE SOFTWARE
- * WILL BE UNINTERRUPTED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * @Author: Takeo Namiki - takeo.namiki@gmail.com
- *
- * >javac -cp servlet-api.jar;commons-lang3-3.4.jar;jjwt-0.6.0.jar;log4j-api-2.5.jar authorize.java
- *
- **************************************************************************/
+ **************************************************************************/ 
 
 import java.io.*;
 import java.sql.*;
@@ -64,10 +64,13 @@ public class authorize extends HttpServlet {
         Connection conn = null;
         Statement stmt = null;
         ResultSet rs = null;
+        HttpSession session = request.getSession(false);
         String response_type = request.getParameter("response_type");
         String username = request.getParameter("username");
         String password = request.getParameter("password");
         String prompt = request.getParameter("prompt");
+        String login_hint = request.getParameter("login_hint");
+        String max_age = request.getParameter("max_age");
         String client_id = request.getParameter("client_id");
         String redirect_uri = request.getParameter("redirect_uri");
         String scope = request.getParameter("scope");
@@ -87,6 +90,7 @@ public class authorize extends HttpServlet {
         int access_token_time = 60;
         String kit="public.key";
         if (scope == null) scope="openid";
+        if (prompt != null && prompt.contains("login") && consent == null && session != null) session.invalidate();
         try {
             ServletContext context = this.getServletContext();
             path = context.getRealPath("/WEB-INF/oauth2");
@@ -145,7 +149,7 @@ public class authorize extends HttpServlet {
                 cipher_byte = md.digest();
                 String sha256_password = Base64.getEncoder().withoutPadding().encodeToString(cipher_byte);
                 if (passwd.contains(sha256_password) && client_scope.contains(scope) && (!redirect_uri_check || db_redirect_uri.equals(redirect_uri))) {
-                    if (prompt != null && prompt.equals("consent") && !consent.equals("false")) {
+                    if (prompt != null && prompt.contains("consent") && !consent.equals("false")) {
                         username="null";
                         password="null";
                         consent="true";
@@ -175,7 +179,7 @@ public class authorize extends HttpServlet {
                             uri = redirect_uri;
                             uri += "#error=invalid_request&error_description=nonce%20is%20not%20valid.";
                             response.sendRedirect(uri);
-                            logger.trace(uri);
+                            logger.info(uri);
                             return;
                         }
                     } else {
@@ -188,7 +192,7 @@ public class authorize extends HttpServlet {
                     if (response_type.equals("token id_token") || response_type.equals("id_token token")) uri += "#access_token="+access_token+"&token_type=bearer&expires_in="+access_token_time+"&id_token="+id_token;
                     if (state != null && !state.equals("null")) uri += "&state="+state;
                     response.sendRedirect(uri);
-                    logger.trace(uri);
+                    logger.info(uri);
                     return;
                 }
             }
@@ -210,11 +214,13 @@ public class authorize extends HttpServlet {
         else uri = "/myop/error";
         if (username != null && !username.equals("null") && password != null && !password.equals("null")) {
             uri += "#error=access_denied&error_description=User%20authentication%20failed.";
+            session = request.getSession(false);
+            if (session != null) session.invalidate();
         } else if (scope == null || !(scope.equals("openid") || scope.equals("openid email"))) {
             uri += "#error=invalid_scope&error_description=The%20scope%20value%20%22"+scope+"%22%20is%20not%20supported.";
         } else if (client_scope == null || client_scope.equals("null")) {
-            uri += "#error=invalid_request&error_description=client_id%20is%20not%20valid.";
-        } else if (response_type == null || response_type.equals("null") || !(response_type.equals("token") || response_type.equals("id_token") || response_type.equals("token id_token") || response_type.equals("id_token token"))) {
+            uri += "#error=unauthorized_clienti&error_description=Client%20authentication%20failed.";
+	} else if (response_type == null || response_type.equals("null") || !(response_type.equals("token") || response_type.equals("id_token") || response_type.equals("token id_token") || response_type.equals("id_token token"))) {
             uri += "#error=unsupported_response_type&error_description==The%20response_type%20value%20%22"+response_type+"%22%20is%20not%20supported.";
         } else if (redirect_uri_check && !db_redirect_uri.equals(redirect_uri)) {
             uri += "#error=invalid_request&error_description=redirect_uri%20is%20not%20valid.";
@@ -222,11 +228,14 @@ public class authorize extends HttpServlet {
             uri = "/myop/login?response_type="+URLEncoder.encode(response_type,"UTF-8")+"&client_id="+client_id+"&redirect_uri="+URLEncoder.encode(redirect_uri,"UTF-8")+"&scope="+URLEncoder.encode(scope,"UTF-8");
             if (nonce != null && !nonce.equals("null")) uri += "&nonce="+nonce;
             if (prompt != null && !prompt.equals("null")) uri += "&prompt="+prompt;
+            if (login_hint != null && !login_hint.equals("null")) uri += "&login_hint="+login_hint;
+            if (max_age != null && !max_age.equals("null")) uri += "&max_age="+max_age;
             if (consent != null && consent.equals("true")) uri += "&consent="+consent;
         }
         if (state != null && !state.equals("null")) uri += "&state="+state;
         response.sendRedirect(uri);
-        logger.trace(uri);
+        logger.info(uri);
         logger.trace("END");
     }
 }
+

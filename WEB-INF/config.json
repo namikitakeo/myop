@@ -1,7 +1,6 @@
 {
-    "_comment": "passwd_hash AUTO, PLAIN or SHA256",
+    "_comment": "TODO passwd_hash AUTO, PLAIN or SHA256",
     "issuer": "http://myop.example.com:8080/myop",
-    "passwd_hash": "AUTO",
     "access_token": 3600,
     "redirect_uri": true
 }
