@@ -89,7 +89,19 @@ public class authorize extends HttpServlet {
         boolean redirect_uri_check = true;
         int access_token_time = 60;
         String kit="public.key";
-        if (scope == null) scope="openid";
+        if (scope == null) {
+            scope="openid";
+        } else if (scope.equals("consent")) {
+            scope=null;
+            if (null != request.getParameter("openid")) {
+                scope = "openid";
+                if (null != request.getParameter("profile")) scope += " profile";
+                if (null != request.getParameter("email")) scope += " email";
+                if (null != request.getParameter("phone")) scope += " phone";
+                if (null != request.getParameter("address")) scope += " address";
+            }
+        }
+        logger.trace(scope);
         if (prompt != null && prompt.contains("login") && consent == null && session != null) session.invalidate();
         try {
             ServletContext context = this.getServletContext();
@@ -148,7 +160,14 @@ public class authorize extends HttpServlet {
                 md.update(password.getBytes());
                 cipher_byte = md.digest();
                 String sha256_password = Base64.getEncoder().withoutPadding().encodeToString(cipher_byte);
-                if (passwd.contains(sha256_password) && client_scope.contains(scope) && (!redirect_uri_check || db_redirect_uri.equals(redirect_uri))) {
+                StringTokenizer strToken = new StringTokenizer(scope, " ");
+                while(strToken.hasMoreTokens()) { 
+                    String token = strToken.nextToken().toString();
+                    logger.trace(token);
+                    if (!client_scope.contains(token))
+                        throw new Exception("out of scope");
+                }
+                if (passwd.contains(sha256_password) && (!redirect_uri_check || db_redirect_uri.equals(redirect_uri))) {
                     if (prompt != null && prompt.contains("consent") && !consent.equals("false")) {
                         username="null";
                         password="null";
@@ -216,8 +235,8 @@ public class authorize extends HttpServlet {
             uri += "#error=access_denied&error_description=User%20authentication%20failed.";
             session = request.getSession(false);
             if (session != null) session.invalidate();
-        } else if (scope == null || !(scope.equals("openid") || scope.equals("openid email"))) {
-            uri += "#error=invalid_scope&error_description=The%20scope%20value%20%22"+scope+"%22%20is%20not%20supported.";
+        } else if (scope == null) {
+            uri += "#error=invalid_scope&error_description=The%20scope%20value%20is%20not%20supported.";
         } else if (client_scope == null || client_scope.equals("null")) {
             uri += "#error=unauthorized_clienti&error_description=Client%20authentication%20failed.";
 	} else if (response_type == null || response_type.equals("null") || !(response_type.equals("token") || response_type.equals("id_token") || response_type.equals("token id_token") || response_type.equals("id_token token"))) {

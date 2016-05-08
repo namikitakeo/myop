@@ -55,4 +55,20 @@
     <servlet-name>authorize</servlet-name>
     <url-pattern>/authorize</url-pattern>
   </servlet-mapping>
+  <servlet>
+    <servlet-name>tokeninfo</servlet-name>
+    <servlet-class>tokeninfo</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>tokeninfo</servlet-name>
+    <url-pattern>/tokeninfo</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <servlet-name>userinfo</servlet-name>
+    <servlet-class>userinfo</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>userinfo</servlet-name>
+    <url-pattern>/userinfo</url-pattern>
+  </servlet-mapping>
 </web-app>
