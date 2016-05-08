@@ -103,7 +103,7 @@ public class tokeninfo extends HttpServlet {
             for (int i=0; i < strs.length; i++)
                 scopes.add(strs[i]);
             long datetime = new Timestamp(System.currentTimeMillis()).getTime() - Timestamp.valueOf(issued_in).getTime();
-            value = Json.createObjectBuilder().add("issued_to", client_id).add("access_token", access_token).add("grant_type", "implicit").add("openid", uid).add("scope", scopes).add("token_type", "Bearer").add("expires_in", (access_token_time * 1000 - datetime)/1000).build();
+            value = Json.createObjectBuilder().add("issued_to", client_id).add("access_token", access_token).add("grant_type", "implicit").add("openid", uid).add("scope", scopes).add("token_type", "bearer").add("expires_in", (access_token_time * 1000 - datetime)/1000).build();
         }
         rs.close();
         stmt.close();
