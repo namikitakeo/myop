@@ -71,6 +71,23 @@ public class tokeninfo extends HttpServlet {
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
         conn = DriverManager.getConnection("jdbc:derby:"+path);
         Statement stmt = conn.createStatement();
+        String keyname = null;
+        path = context.getRealPath("/WEB-INF/config.json");
+        InputStream input = new FileInputStream(path);
+        JsonParser parser = Json.createParser(input);
+        while(parser.hasNext()){
+            JsonParser.Event event = parser.next();
+            switch(event){
+            case KEY_NAME:
+                keyname=parser.getString();
+                break;
+            case VALUE_NUMBER:
+                if (keyname.equals("access_token")) access_token_time=parser.getInt();
+                break;
+            default:
+                break;
+            }
+        }
         sql = "SELECT uid,scope,issued_in,client_id FROM session WHERE access_token='"+access_token+"' and {fn TIMESTAMPADD( SQL_TSI_SECOND,"+access_token_time+", issued_in)} > CURRENT_TIMESTAMP";
         ResultSet rs = stmt.executeQuery(sql);
         while(rs.next()){
@@ -81,23 +98,6 @@ public class tokeninfo extends HttpServlet {
         }
         value = Json.createObjectBuilder().add("error_description","Access Token not valid").add("error","invalid_request").build();
         if (uid != null) {
-            String keyname = null;
-            path = context.getRealPath("/WEB-INF/config.json");
-            InputStream input = new FileInputStream(path);
-            JsonParser parser = Json.createParser(input);
-            while(parser.hasNext()){
-                JsonParser.Event event = parser.next();
-                switch(event){
-                case KEY_NAME:
-                    keyname=parser.getString();
-                    break;
-                case VALUE_NUMBER:
-                    if (keyname.equals("access_token")) access_token_time=parser.getInt();
-                    break;
-                default:
-                    break;
-                }
-            }
             JsonArrayBuilder scopes = Json.createArrayBuilder();
             String[] strs = scope.split(" ");
             for (int i=0; i < strs.length; i++)
