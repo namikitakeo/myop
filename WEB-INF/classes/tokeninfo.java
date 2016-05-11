@@ -55,6 +55,8 @@ public class tokeninfo extends HttpServlet {
     response.setContentType("application/json");
     PrintWriter out = response.getWriter();
     Connection conn = null;
+    Statement stmt = null;
+    ResultSet rs = null;
     JsonObject value = null;
     String header = request.getHeader("Authorization");
     String access_token = request.getParameter("access_token");
@@ -63,6 +65,7 @@ public class tokeninfo extends HttpServlet {
     String scope = null;
     String issued_in = null;
     String client_id = null;
+    String keyname = null;
     String sql = null;
     int access_token_time = 60;
     try {
@@ -70,8 +73,7 @@ public class tokeninfo extends HttpServlet {
         String path = context.getRealPath("/WEB-INF/oauth2");
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
         conn = DriverManager.getConnection("jdbc:derby:"+path);
-        Statement stmt = conn.createStatement();
-        String keyname = null;
+        stmt = conn.createStatement();
         path = context.getRealPath("/WEB-INF/config.json");
         InputStream input = new FileInputStream(path);
         JsonParser parser = Json.createParser(input);
@@ -89,7 +91,7 @@ public class tokeninfo extends HttpServlet {
             }
         }
         sql = "SELECT uid,scope,issued_in,client_id FROM session WHERE access_token='"+access_token+"' and {fn TIMESTAMPADD( SQL_TSI_SECOND,"+access_token_time+", issued_in)} > CURRENT_TIMESTAMP";
-        ResultSet rs = stmt.executeQuery(sql);
+        rs = stmt.executeQuery(sql);
         while(rs.next()){
             uid = rs.getString("uid");
             scope = rs.getString("scope");
@@ -105,22 +107,16 @@ public class tokeninfo extends HttpServlet {
             long datetime = new Timestamp(System.currentTimeMillis()).getTime() - Timestamp.valueOf(issued_in).getTime();
             value = Json.createObjectBuilder().add("issued_to", client_id).add("access_token", access_token).add("grant_type", "implicit").add("openid", uid).add("scope", scopes).add("token_type", "bearer").add("expires_in", (access_token_time * 1000 - datetime)/1000).build();
         }
-        rs.close();
-        stmt.close();
     }catch (Exception e){
         value = Json.createObjectBuilder().add("error_description", "database connect error").add("error", "server_error").build();
-        out.print(value.toString());
-        return;
     }finally{
-      try{
-        if (conn != null){
-            conn.close();
+        try{
+            if (rs != null) rs.close();
+            if (stmt != null) stmt.close();
+            if (conn != null) conn.close();
+        }catch (SQLException e){
+            value = Json.createObjectBuilder().add("error_description", "database close error").add("error", "server_error").build();
         }
-      }catch (SQLException e){
-        value = Json.createObjectBuilder().add("error_description", "database close error").add("error", "server_error").build();
-        out.print(value.toString());
-        return;
-      }
     }
     out.print(value.toString());
   }

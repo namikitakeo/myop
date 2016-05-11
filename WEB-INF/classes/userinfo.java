@@ -44,6 +44,7 @@
 import java.io.*;
 import java.sql.*;
 import javax.json.*;
+import javax.json.stream.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
@@ -52,12 +53,18 @@ public class userinfo extends HttpServlet {
     response.setContentType("application/json; charset=UTF-8");
     PrintWriter out = response.getWriter();
     Connection conn = null;
+    Statement stmt = null;
+    ResultSet rs = null;
     JsonObjectBuilder value=null;
-    String mail=null;
-    String phone=null;
+    String sql=null;
+    String email=null;
+    String phone_number=null;
     String name=null;
     String given_name=null;
     String family_name=null;
+    String middle_name=null;
+    String nickname=null;
+    String address=null;
     String uid = request.getHeader("OIDC_CLAIM_openid");
     String scope = request.getHeader("OIDC_CLAIM_scope");
     if (scope == null) scope="openid";
@@ -66,35 +73,66 @@ public class userinfo extends HttpServlet {
         String path = context.getRealPath("/WEB-INF/oauth2");
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
         conn = DriverManager.getConnection("jdbc:derby:"+path);
-        Statement stmt = conn.createStatement();
-        String sql = "SELECT * FROM profile WHERE uid='"+uid+"'";
-        ResultSet rs = stmt.executeQuery(sql);
+        stmt = conn.createStatement();
+        sql = "SELECT * FROM profile WHERE uid='"+uid+"'";
+        rs = stmt.executeQuery(sql);
         while(rs.next()){
             name = rs.getString("name");
             given_name = rs.getString("given_name");
             family_name = rs.getString("family_name");
-            mail = rs.getString("mail");
-            phone = rs.getString("phone");
+            middle_name = rs.getString("middle_name");
+            nickname = rs.getString("nickname");
+            email = rs.getString("email");
+            phone_number = rs.getString("phone_number");
+            address = rs.getString("address");
         }
-        rs.close();
-        stmt.close();
     }catch (Exception e){
         value = Json.createObjectBuilder().add("error_description", "database connect error").add("error", "server_error");
     }finally{
       try{
-        if (conn != null){
-            conn.close();
-        }
+          if (rs != null) rs.close();
+          if (stmt != null) stmt.close();
+          if (conn != null) conn.close();
       }catch (SQLException e){
         value = Json.createObjectBuilder().add("error_description", "database close error").add("error", "server_error");
       }
     }
-    value = Json.createObjectBuilder().add("error_description", "database select error uid="+uid).add("error", "server_error");
+    if (value == null) value = Json.createObjectBuilder().add("error_description", "database select error uid="+uid).add("error", "server_error");
     if (uid != null) {
         value = Json.createObjectBuilder().add("sub", uid);
-        if (scope.contains("profile")) value = value.add("name", name).add("given_name", given_name).add("family_name", family_name);
-        if (scope.contains("email")) value = value.add("email", mail);
-        if (scope.contains("phone")) value = value.add("phone", phone);
+        if (name == null) name="";
+        if (given_name == null) given_name="";
+        if (family_name == null) family_name="";
+        if (middle_name == null) middle_name="";
+        if (nickname == null) nickname="";
+        if (email == null) email="";
+        if (phone_number == null) phone_number="";
+        if (scope.contains("profile")) value = value.add("name", name).add("given_name", given_name).add("middle_name", middle_name).add("family_name", family_name).add("nickname", nickname);
+        if (scope.contains("email")) value = value.add("email", email);
+        if (scope.contains("phone")) value = value.add("phone_number", phone_number);
+        if (scope.contains("address")) {
+            if (address == null) {
+                value = value.add("address", "");
+            } else {
+                JsonObjectBuilder array = Json.createObjectBuilder();
+                JsonParser parser = Json.createParser(new StringReader(address));
+                String keyname=null;
+                while(parser.hasNext()){
+                    JsonParser.Event event = parser.next();
+                    switch(event){
+                    case KEY_NAME:
+                        keyname=parser.getString();
+                        break;
+                    case VALUE_STRING:
+                        array = array.add(keyname, parser.getString());
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                value = value.add("address", array);
+            }
+        }
     }
     out.println(value.build().toString());
   }

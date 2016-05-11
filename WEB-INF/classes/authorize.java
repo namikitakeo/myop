@@ -86,9 +86,10 @@ public class authorize extends HttpServlet {
         String sql = null;
         String uri = null;
         String issuer = null;
+        String keyname = null;
+        String kit="public.key";
         boolean redirect_uri_check = true;
         int access_token_time = 60;
-        String kit="public.key";
         if (scope == null) {
             scope="openid";
         } else if (scope.equals("consent")) {
@@ -110,7 +111,7 @@ public class authorize extends HttpServlet {
             conn = DriverManager.getConnection("jdbc:derby:"+path);
             stmt = conn.createStatement();
             logger.trace("connect()");
-            sql = "SELECT scope, redirect_uri FROM client WHERE client_id='"+client_id+"'";
+            sql = "SELECT scope,redirect_uri FROM client WHERE client_id='"+client_id+"'";
             rs = stmt.executeQuery(sql);
             while(rs.next()){
                 client_scope = rs.getString("scope");
@@ -124,7 +125,6 @@ public class authorize extends HttpServlet {
                 passwd = rs.getString("passwd");
             }
             logger.trace(sql);
-            String keyname = null;
             path = context.getRealPath("/WEB-INF/config.json");
             InputStream input = new FileInputStream(path);
             JsonParser parser = Json.createParser(input);
@@ -219,12 +219,10 @@ public class authorize extends HttpServlet {
             logger.trace(e.getMessage());
         }finally{
             try{
-                if (conn != null) {
-                    rs.close();
-                    stmt.close();
-                    conn.close();
-                    logger.trace("close()");
-                }
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+                logger.trace("close()");
             }catch (SQLException e){
                 logger.trace(e.getMessage());
             }

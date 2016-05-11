@@ -60,11 +60,8 @@ public class logout extends HttpServlet {
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
-            session = request.getSession(false);
         }
-        RequestDispatcher rd = null;
-        if (session == null) rd = ctx.getRequestDispatcher("/logout.jsp");
-        else rd = ctx.getRequestDispatcher("/error.jsp");
+        RequestDispatcher rd = ctx.getRequestDispatcher("/logout.jsp");
         rd.forward(request, response);
     }
 }

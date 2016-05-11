@@ -1,6 +1,7 @@
 {
     "_comment": "TODO passwd_hash AUTO, PLAIN or SHA256",
     "issuer": "http://myop.example.com:8080/myop",
+    "kit": "public.key",
     "access_token": 3600,
     "redirect_uri": true
 }

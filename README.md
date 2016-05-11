@@ -1,2 +1,2 @@
 # myop
-My OpenID Provider Version 0.4
+My OpenID Provider Version 0.5

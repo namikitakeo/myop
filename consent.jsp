@@ -24,10 +24,10 @@ scopes:<p>
 <input type="checkbox" name="profile" value="profile" checked="true">profile<br>
 <% } if (authorize.getScope().contains("email")) { %>
 <input type="checkbox" name="email" value="email" checked="true">email<br>
-<% } if (authorize.getScope().contains("phone")) { %>
-<input type="checkbox" name="phone" value="phone" checked="true">phone<br>
 <% } if (authorize.getScope().contains("address")) { %>
 <input type="checkbox" name="address" value="address" checked="true">address<br>
+<% } if (authorize.getScope().contains("phone")) { %>
+<input type="checkbox" name="phone" value="phone" checked="true">phone<br>
 <% } %><p>
 
 uri: <%= authorize.getRedirecturi() %><p>
